@@ -9,6 +9,7 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from src.engine.track import Track
 
 
 class Ui_MainWindow(object):
@@ -155,61 +156,66 @@ class Ui_MainWindow(object):
         self.mixer.addLayout(self.master_track)
         
     def create_track(self):
-        self.tracks.append({})
-        track_no = len(self.tracks) - 1
+        track_no = len(self.tracks)
+        track = {}
 
-        self.tracks[track_no]['track'] = QtWidgets.QVBoxLayout()
-        self.tracks[track_no]['track'].setObjectName("track{}".format(track_no + 1))
+        track['track_widget'] = QtWidgets.QVBoxLayout()
+        track['track_widget'].setObjectName("track{}".format(track_no))
         
-        self.tracks[track_no]['label'] = QtWidgets.QLabel(self.centralwidget)
+        track['label'] = QtWidgets.QLabel(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.tracks[track_no]['label'].sizePolicy().hasHeightForWidth())
-        self.tracks[track_no]['label'].setSizePolicy(sizePolicy)
-        self.tracks[track_no]['label'].setMinimumSize(QtCore.QSize(100, 0))
-        self.tracks[track_no]['label'].setMaximumSize(QtCore.QSize(100, 16777215))
-        self.tracks[track_no]['label'].setAlignment(QtCore.Qt.AlignCenter)
-        self.tracks[track_no]['label'].setObjectName("track{}_label".format(track_no + 1))
-        self.tracks[track_no]['label'].setText("Track {}".format(track_no + 1))
-        self.tracks[track_no]['track'].addWidget(self.tracks[track_no]['label'])
+        sizePolicy.setHeightForWidth(track['label'].sizePolicy().hasHeightForWidth())
+        track['label'].setSizePolicy(sizePolicy)
+        track['label'].setMinimumSize(QtCore.QSize(100, 0))
+        track['label'].setMaximumSize(QtCore.QSize(100, 16777215))
+        track['label'].setAlignment(QtCore.Qt.AlignCenter)
+        track['label'].setObjectName("track{}_label".format(track_no))
+        track['label'].setText("Track {}".format(track_no + 1))
+        track['track_widget'].addWidget(track['label'])
         
-        self.tracks[track_no]['load'] = QtWidgets.QPushButton(self.centralwidget)
+        track['load'] = QtWidgets.QPushButton(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.tracks[track_no]['load'].sizePolicy().hasHeightForWidth())
-        self.tracks[track_no]['load'].setSizePolicy(sizePolicy)
-        self.tracks[track_no]['load'].setMinimumSize(QtCore.QSize(0, 0))
-        self.tracks[track_no]['load'].setMaximumSize(QtCore.QSize(16777215, 25))
-        self.tracks[track_no]['load'].setObjectName("tack{}_load".format(track_no + 1))
-        self.tracks[track_no]['load'].setText("Load")
-        self.tracks[track_no]['track'].addWidget(self.tracks[track_no]['load'])
+        sizePolicy.setHeightForWidth(track['load'].sizePolicy().hasHeightForWidth())
+        track['load'].setSizePolicy(sizePolicy)
+        track['load'].setMinimumSize(QtCore.QSize(0, 0))
+        track['load'].setMaximumSize(QtCore.QSize(16777215, 25))
+        track['load'].setObjectName("tack{}_load".format(track_no))
+        track['load'].setText("Load")
+        track['track_widget'].addWidget(track['load'])
         
-        self.tracks[track_no]['volume'] = QtWidgets.QHBoxLayout()
-        self.tracks[track_no]['volume'].setObjectName("track{}_volume".format(track_no + 1))
+        track['volume'] = QtWidgets.QHBoxLayout()
+        track['volume'].setObjectName("track{}_volume".format(track_no))
 
-        self.tracks[track_no]['v_control'] = QtWidgets.QSlider(self.centralwidget)
+        track['v_control'] = QtWidgets.QSlider(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.MinimumExpanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.tracks[track_no]['v_control'].sizePolicy().hasHeightForWidth())
-        self.tracks[track_no]['v_control'].setSizePolicy(sizePolicy)
-        self.tracks[track_no]['v_control'].setMinimumSize(QtCore.QSize(0, 250))
-        self.tracks[track_no]['v_control'].setMinimum(-48)
-        self.tracks[track_no]['v_control'].setMaximum(12)
-        self.tracks[track_no]['v_control'].setProperty("value", 0)
-        self.tracks[track_no]['v_control'].setOrientation(QtCore.Qt.Vertical)
-        self.tracks[track_no]['v_control'].setInvertedAppearance(False)
-        self.tracks[track_no]['v_control'].setTickPosition(QtWidgets.QSlider.TicksBothSides)
-        self.tracks[track_no]['v_control'].setTickInterval(6)
-        self.tracks[track_no]['v_control'].setObjectName("track{}_volume_control".format(track_no + 1))
+        sizePolicy.setHeightForWidth(track['v_control'].sizePolicy().hasHeightForWidth())
+        track['v_control'].setSizePolicy(sizePolicy)
+        track['v_control'].setMinimumSize(QtCore.QSize(0, 250))
+        track['v_control'].setMinimum(-48)
+        track['v_control'].setMaximum(12)
+        track['v_control'].setProperty("value", 0)
+        track['v_control'].setOrientation(QtCore.Qt.Vertical)
+        track['v_control'].setInvertedAppearance(False)
+        track['v_control'].setTickPosition(QtWidgets.QSlider.TicksBothSides)
+        track['v_control'].setTickInterval(6)
+        track['v_control'].setObjectName("track{}_volume_control".format(track_no))
 
-        self.tracks[track_no]['volume'].addWidget(self.tracks[track_no]['v_control'])
-        self.tracks[track_no]['track'].addLayout(self.tracks[track_no]['volume'])
+        track['volume'].addWidget(track['v_control'])
+        track['track_widget'].addLayout(track['volume'])
 
-        self.mixer.addLayout(self.tracks[track_no]['track'])
-        
+        self.mixer.addLayout(track['track_widget'])
+
+        track['track'] = Track()
+        track['load'].clicked.connect(lambda: track['track'].load('D:\\Studia\\II\\DP\\Ambisonia\\tmp\\grass.wav'))
+
+        self.tracks.append(track)
+
     def _create_ambisonic_control(self):
         self.ambisonic_control = QtWidgets.QVBoxLayout()
         self.ambisonic_control.setObjectName("ambisonic_control")
