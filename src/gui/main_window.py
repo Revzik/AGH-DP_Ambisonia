@@ -9,10 +9,41 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from src.engine.track import Track
+from src.engine.track import MasterTrack, MonoTrack
+from src.gui.bar import Bar
+
+
+VOL_MIN = -60
+VOL_MAX = 12
+VOL_YELLOW = -12
+VOL_RED = 0
 
 
 class Ui_MainWindow(object):
+    def __init__(self):
+        self.centralwidget = None
+        self.gridLayout = None
+        self.main_layout = None
+
+        self.track_controls = None
+
+        self.button_bar = None
+        self.buttons = {}
+
+        self.mixer = None
+        self.master = {}
+        self.tracks = []
+
+        self.ambisonic_control = None
+        
+        self.space_control = {}
+        self.space_display = {}
+
+        self.menubar = None
+        self.statusbar = None
+
+        self.initialized = False
+
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(648, 435)
@@ -57,6 +88,8 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle("Ambisonia")
 
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
+
+        self.initialized = True
         
     def _create_track_controls(self):
         self.track_controls = QtWidgets.QVBoxLayout()
@@ -68,8 +101,7 @@ class Ui_MainWindow(object):
         self.mixer.setObjectName("mixer")
         
         self._create_master_track()
-        
-        self.tracks = []
+
         self.create_track()
         
         self.track_controls.addLayout(self.mixer)
@@ -82,27 +114,27 @@ class Ui_MainWindow(object):
         self.button_bar.setSpacing(6)
         self.button_bar.setObjectName("button_bar")
         
-        self.play_pause = QtWidgets.QPushButton(self.centralwidget)
+        self.buttons['play'] = QtWidgets.QPushButton(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.play_pause.sizePolicy().hasHeightForWidth())
-        self.play_pause.setSizePolicy(sizePolicy)
-        self.play_pause.setMinimumSize(QtCore.QSize(60, 60))
-        self.play_pause.setObjectName("play_pause")
-        self.play_pause.setText("Play")
-        self.button_bar.addWidget(self.play_pause)
+        sizePolicy.setHeightForWidth(self.buttons['play'].sizePolicy().hasHeightForWidth())
+        self.buttons['play'].setSizePolicy(sizePolicy)
+        self.buttons['play'].setMinimumSize(QtCore.QSize(60, 60))
+        self.buttons['play'].setObjectName("play_pause")
+        self.buttons['play'].setText("Play")
+        self.button_bar.addWidget(self.buttons['play'])
         
-        self.stop = QtWidgets.QPushButton(self.centralwidget)
+        self.buttons['stop'] = QtWidgets.QPushButton(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.stop.sizePolicy().hasHeightForWidth())
-        self.stop.setSizePolicy(sizePolicy)
-        self.stop.setMinimumSize(QtCore.QSize(60, 60))
-        self.stop.setObjectName("stop")
-        self.stop.setText("Stop")
-        self.button_bar.addWidget(self.stop)
+        sizePolicy.setHeightForWidth(self.buttons['stop'].sizePolicy().hasHeightForWidth())
+        self.buttons['stop'].setSizePolicy(sizePolicy)
+        self.buttons['stop'].setMinimumSize(QtCore.QSize(60, 60))
+        self.buttons['stop'].setObjectName("stop")
+        self.buttons['stop'].setText("Stop")
+        self.button_bar.addWidget(self.buttons['stop'])
         
         spacerItem = QtWidgets.QSpacerItem(0, 20, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
         self.button_bar.addItem(spacerItem)
@@ -110,57 +142,60 @@ class Ui_MainWindow(object):
         self.track_controls.addLayout(self.button_bar)
         
     def _create_master_track(self):
-        self.master_track = QtWidgets.QVBoxLayout()
-        self.master_track.setObjectName("master_track")
+        self.master['widget'] = QtWidgets.QVBoxLayout()
+        self.master['widget'].setObjectName("master")
         
-        self.master_label = QtWidgets.QLabel(self.centralwidget)
+        self.master['label'] = QtWidgets.QLabel(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.master_label.sizePolicy().hasHeightForWidth())
-        self.master_label.setSizePolicy(sizePolicy)
-        self.master_label.setMinimumSize(QtCore.QSize(100, 0))
-        self.master_label.setMaximumSize(QtCore.QSize(100, 16777215))
-        self.master_label.setAlignment(QtCore.Qt.AlignCenter)
-        self.master_label.setObjectName("master_label")
-        self.master_label.setText("Master")
-        self.master_track.addWidget(self.master_label)
+        sizePolicy.setHeightForWidth(self.master['label'].sizePolicy().hasHeightForWidth())
+        self.master['label'].setSizePolicy(sizePolicy)
+        self.master['label'].setMinimumSize(QtCore.QSize(100, 0))
+        self.master['label'].setMaximumSize(QtCore.QSize(100, 16777215))
+        self.master['label'].setAlignment(QtCore.Qt.AlignCenter)
+        self.master['label'].setObjectName("master_label")
+        self.master['label'].setText("Master")
+        self.master['widget'].addWidget(self.master['label'])
         
-        self.master_export = QtWidgets.QPushButton(self.centralwidget)
-        self.master_export.setObjectName("master_export")
-        self.master_export.setText("Export")
-        self.master_track.addWidget(self.master_export)
+        self.master['export'] = QtWidgets.QPushButton(self.centralwidget)
+        self.master['export'].setObjectName("master_export")
+        self.master['export'].setText("Export")
+        self.master['widget'].addWidget(self.master['export'])
         
-        self.master_volume = QtWidgets.QHBoxLayout()
-        self.master_volume.setObjectName("master_volume")
+        self.master['volume'] = QtWidgets.QHBoxLayout()
+        self.master['volume'].setObjectName("master_volume")
         
-        self.master_volume_control = QtWidgets.QSlider(self.centralwidget)
+        self.master['v_control'] = QtWidgets.QSlider(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.MinimumExpanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.master_volume_control.sizePolicy().hasHeightForWidth())
-        self.master_volume_control.setSizePolicy(sizePolicy)
-        self.master_volume_control.setMinimumSize(QtCore.QSize(0, 250))
-        self.master_volume_control.setMinimum(-48)
-        self.master_volume_control.setMaximum(12)
-        self.master_volume_control.setProperty("value", 0)
-        self.master_volume_control.setOrientation(QtCore.Qt.Vertical)
-        self.master_volume_control.setInvertedAppearance(False)
-        self.master_volume_control.setTickPosition(QtWidgets.QSlider.TicksBothSides)
-        self.master_volume_control.setTickInterval(6)
-        self.master_volume_control.setObjectName("master_volume_control")
-        self.master_volume.addWidget(self.master_volume_control)
-        
-        self.master_track.addLayout(self.master_volume)
+        sizePolicy.setHeightForWidth(self.master['v_control'].sizePolicy().hasHeightForWidth())
+        self.master['v_control'].setSizePolicy(sizePolicy)
+        self.master['v_control'].setMinimumSize(QtCore.QSize(0, 250))
+        self.master['v_control'].setMinimum(VOL_MIN)
+        self.master['v_control'].setMaximum(VOL_MAX)
+        self.master['v_control'].setProperty("value", 0)
+        self.master['v_control'].setOrientation(QtCore.Qt.Vertical)
+        self.master['v_control'].setInvertedAppearance(False)
+        self.master['v_control'].setTickPosition(QtWidgets.QSlider.TicksBothSides)
+        self.master['v_control'].setTickInterval(6)
+        self.master['v_control'].setObjectName("master_volume_control")
+        self.master['volume'].addWidget(self.master['v_control'])
 
-        self.mixer.addLayout(self.master_track)
+        self.master['v_display'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
+        self.master['volume'].addWidget(self.master['v_display'])
+        
+        self.master['widget'].addLayout(self.master['volume'])
+
+        self.mixer.addLayout(self.master['widget'])
         
     def create_track(self):
         track_no = len(self.tracks)
         track = {}
 
-        track['track_widget'] = QtWidgets.QVBoxLayout()
-        track['track_widget'].setObjectName("track{}".format(track_no))
+        track['widget'] = QtWidgets.QVBoxLayout()
+        track['widget'].setObjectName("track{}".format(track_no))
         
         track['label'] = QtWidgets.QLabel(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
@@ -173,7 +208,7 @@ class Ui_MainWindow(object):
         track['label'].setAlignment(QtCore.Qt.AlignCenter)
         track['label'].setObjectName("track{}_label".format(track_no))
         track['label'].setText("Track {}".format(track_no + 1))
-        track['track_widget'].addWidget(track['label'])
+        track['widget'].addWidget(track['label'])
         
         track['load'] = QtWidgets.QPushButton(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
@@ -185,7 +220,7 @@ class Ui_MainWindow(object):
         track['load'].setMaximumSize(QtCore.QSize(16777215, 25))
         track['load'].setObjectName("tack{}_load".format(track_no))
         track['load'].setText("Load")
-        track['track_widget'].addWidget(track['load'])
+        track['widget'].addWidget(track['load'])
         
         track['volume'] = QtWidgets.QHBoxLayout()
         track['volume'].setObjectName("track{}_volume".format(track_no))
@@ -197,22 +232,25 @@ class Ui_MainWindow(object):
         sizePolicy.setHeightForWidth(track['v_control'].sizePolicy().hasHeightForWidth())
         track['v_control'].setSizePolicy(sizePolicy)
         track['v_control'].setMinimumSize(QtCore.QSize(0, 250))
-        track['v_control'].setMinimum(-48)
-        track['v_control'].setMaximum(12)
+        track['v_control'].setMinimum(VOL_MIN)
+        track['v_control'].setMaximum(VOL_MAX)
         track['v_control'].setProperty("value", 0)
         track['v_control'].setOrientation(QtCore.Qt.Vertical)
         track['v_control'].setInvertedAppearance(False)
         track['v_control'].setTickPosition(QtWidgets.QSlider.TicksBothSides)
         track['v_control'].setTickInterval(6)
         track['v_control'].setObjectName("track{}_volume_control".format(track_no))
-
         track['volume'].addWidget(track['v_control'])
-        track['track_widget'].addLayout(track['volume'])
 
-        self.mixer.addLayout(track['track_widget'])
+        track['v_bar'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
+        track['volume'].addWidget(track['v_bar'])
 
-        track['track'] = Track()
-        track['load'].clicked.connect(lambda: track['track'].load('D:\\Studia\\II\\DP\\Ambisonia\\tmp\\grass.wav'))
+        track['widget'].addLayout(track['volume'])
+
+        self.mixer.addLayout(track['widget'])
+
+        track['track'] = MonoTrack()
+        track['load'].clicked.connect(track['track'].load)
 
         self.tracks.append(track)
 
@@ -230,103 +268,115 @@ class Ui_MainWindow(object):
         self.main_layout.addLayout(self.ambisonic_control)
 
     def _create_space_control(self):
-        self.space_control = QtWidgets.QHBoxLayout()
-        self.space_control.setObjectName("space_control")
+        self.space_control['widget'] = QtWidgets.QHBoxLayout()
+        self.space_control['widget'].setObjectName("space_control")
 
-        self.horizontal_space = QtWidgets.QDial(self.centralwidget)
-        self.horizontal_space.setMinimum(-180)
-        self.horizontal_space.setMaximum(180)
-        self.horizontal_space.setWrapping(True)
-        self.horizontal_space.setNotchTarget(5.7)
-        self.horizontal_space.setNotchesVisible(True)
-        self.horizontal_space.setObjectName("horizontal_space")
-        self.space_control.addWidget(self.horizontal_space)
+        self.space_control['horizontal'] = QtWidgets.QDial(self.centralwidget)
+        self.space_control['horizontal'].setMinimum(-180)
+        self.space_control['horizontal'].setMaximum(180)
+        self.space_control['horizontal'].setWrapping(True)
+        self.space_control['horizontal'].setNotchTarget(5.7)
+        self.space_control['horizontal'].setNotchesVisible(True)
+        self.space_control['horizontal'].setObjectName("horizontal_space")
+        self.space_control['widget'].addWidget(self.space_control['horizontal'])
 
-        self.vertical_space = QtWidgets.QSlider(self.centralwidget)
+        self.space_control['vertical'] = QtWidgets.QSlider(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.vertical_space.sizePolicy().hasHeightForWidth())
-        self.vertical_space.setSizePolicy(sizePolicy)
-        self.vertical_space.setMinimumSize(QtCore.QSize(0, 275))
-        self.vertical_space.setMaximumSize(QtCore.QSize(16777215, 275))
-        self.vertical_space.setMinimum(-180)
-        self.vertical_space.setMaximum(180)
-        self.vertical_space.setOrientation(QtCore.Qt.Vertical)
-        self.vertical_space.setTickPosition(QtWidgets.QSlider.TicksBelow)
-        self.vertical_space.setTickInterval(30)
-        self.vertical_space.setObjectName("vertical_space")
-        self.space_control.addWidget(self.vertical_space)
+        sizePolicy.setHeightForWidth(self.space_control['vertical'].sizePolicy().hasHeightForWidth())
+        self.space_control['vertical'].setSizePolicy(sizePolicy)
+        self.space_control['vertical'].setMinimumSize(QtCore.QSize(0, 275))
+        self.space_control['vertical'].setMaximumSize(QtCore.QSize(16777215, 275))
+        self.space_control['vertical'].setMinimum(-180)
+        self.space_control['vertical'].setMaximum(180)
+        self.space_control['vertical'].setOrientation(QtCore.Qt.Vertical)
+        self.space_control['vertical'].setTickPosition(QtWidgets.QSlider.TicksBelow)
+        self.space_control['vertical'].setTickInterval(30)
+        self.space_control['vertical'].setObjectName("vertical_space")
+        self.space_control['widget'].addWidget(self.space_control['vertical'])
 
-        self.ambisonic_control.addLayout(self.space_control)
-
-        self.space_display = QtWidgets.QHBoxLayout()
-        self.space_display.setObjectName("space_display")
-
-        spacerItem3 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
-        self.space_display.addItem(spacerItem3)
+        self.ambisonic_control.addLayout(self.space_control['widget'])
 
     def _create_space_display(self):
-        self.omni_display = QtWidgets.QVBoxLayout()
-        self.omni_display.setObjectName("omni_display")
-        self.omni_label = QtWidgets.QLabel(self.centralwidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Preferred)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.omni_label.sizePolicy().hasHeightForWidth())
-        self.omni_label.setSizePolicy(sizePolicy)
-        self.omni_label.setMinimumSize(QtCore.QSize(30, 0))
-        self.omni_label.setAlignment(QtCore.Qt.AlignCenter)
-        self.omni_label.setObjectName("omni_label")
-        self.omni_label.setText("W")
-        self.omni_display.addWidget(self.omni_label)
-        self.space_display.addLayout(self.omni_display)
+        self.space_display['widget'] = QtWidgets.QHBoxLayout()
+        self.space_display['widget'].setObjectName("space_display")
 
-        self.x_display = QtWidgets.QVBoxLayout()
-        self.x_display.setObjectName("x_display")
-        self.x_label = QtWidgets.QLabel(self.centralwidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Preferred)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.x_label.sizePolicy().hasHeightForWidth())
-        self.x_label.setSizePolicy(sizePolicy)
-        self.x_label.setMinimumSize(QtCore.QSize(30, 0))
-        self.x_label.setAlignment(QtCore.Qt.AlignCenter)
-        self.x_label.setObjectName("x_label")
-        self.x_label.setText("X")
-        self.x_display.addWidget(self.x_label)
-        self.space_display.addLayout(self.x_display)
+        spacerItem3 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.space_display['widget'].addItem(spacerItem3)
 
-        self.y_display = QtWidgets.QVBoxLayout()
-        self.y_display.setObjectName("y_display")
-        self.y_label = QtWidgets.QLabel(self.centralwidget)
+        self.space_display['omni'] = {}
+        self.space_display['omni']['widget'] = QtWidgets.QVBoxLayout()
+        self.space_display['omni']['widget'].setObjectName("omni_display")
+        self.space_display['omni']['label'] = QtWidgets.QLabel(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.y_label.sizePolicy().hasHeightForWidth())
-        self.y_label.setSizePolicy(sizePolicy)
-        self.y_label.setMinimumSize(QtCore.QSize(30, 0))
-        self.y_label.setAlignment(QtCore.Qt.AlignCenter)
-        self.y_label.setObjectName("y_label")
-        self.y_label.setText("Y")
-        self.y_display.addWidget(self.y_label)
-        self.space_display.addLayout(self.y_display)
+        sizePolicy.setHeightForWidth(self.space_display['omni']['label'].sizePolicy().hasHeightForWidth())
+        self.space_display['omni']['label'].setSizePolicy(sizePolicy)
+        self.space_display['omni']['label'].setMinimumSize(QtCore.QSize(20, 0))
+        self.space_display['omni']['label'].setAlignment(QtCore.Qt.AlignCenter)
+        self.space_display['omni']['label'].setObjectName("omni_label")
+        self.space_display['omni']['label'].setText("W")
+        self.space_display['omni']['widget'].addWidget(self.space_display['omni']['label'])
+        self.space_display['omni']['bar'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
+        self.space_display['omni']['widget'].addWidget(self.space_display['omni']['bar'])
+        self.space_display['widget'].addLayout(self.space_display['omni']['widget'])
 
-        self.z_display = QtWidgets.QVBoxLayout()
-        self.z_display.setObjectName("z_display")
-        self.z_label = QtWidgets.QLabel(self.centralwidget)
+        self.space_display['x'] = {}
+        self.space_display['x']['widget'] = QtWidgets.QVBoxLayout()
+        self.space_display['x']['widget'].setObjectName("x_display")
+        self.space_display['x']['label'] = QtWidgets.QLabel(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.z_label.sizePolicy().hasHeightForWidth())
-        self.z_label.setSizePolicy(sizePolicy)
-        self.z_label.setMinimumSize(QtCore.QSize(30, 0))
-        self.z_label.setAlignment(QtCore.Qt.AlignCenter)
-        self.z_label.setObjectName("z_label")
-        self.z_label.setText("Z")
-        self.z_display.addWidget(self.z_label)
-        self.space_display.addLayout(self.z_display)
+        sizePolicy.setHeightForWidth(self.space_display['x']['label'].sizePolicy().hasHeightForWidth())
+        self.space_display['x']['label'].setSizePolicy(sizePolicy)
+        self.space_display['x']['label'].setMinimumSize(QtCore.QSize(20, 0))
+        self.space_display['x']['label'].setAlignment(QtCore.Qt.AlignCenter)
+        self.space_display['x']['label'].setObjectName("x_label")
+        self.space_display['x']['label'].setText("X")
+        self.space_display['x']['widget'].addWidget(self.space_display['x']['label'])
+        self.space_display['x']['bar'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
+        self.space_display['x']['widget'].addWidget(self.space_display['x']['bar'])
+        self.space_display['widget'].addLayout(self.space_display['x']['widget'])
+
+        self.space_display['y'] = {}
+        self.space_display['y']['widget'] = QtWidgets.QVBoxLayout()
+        self.space_display['y']['widget'].setObjectName("y_display")
+        self.space_display['y']['label'] = QtWidgets.QLabel(self.centralwidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.space_display['y']['label'].sizePolicy().hasHeightForWidth())
+        self.space_display['y']['label'].setSizePolicy(sizePolicy)
+        self.space_display['y']['label'].setMinimumSize(QtCore.QSize(20, 0))
+        self.space_display['y']['label'].setAlignment(QtCore.Qt.AlignCenter)
+        self.space_display['y']['label'].setObjectName("y_label")
+        self.space_display['y']['label'].setText("Y")
+        self.space_display['y']['widget'].addWidget(self.space_display['y']['label'])
+        self.space_display['y']['bar'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
+        self.space_display['y']['widget'].addWidget(self.space_display['y']['bar'])
+        self.space_display['widget'].addLayout(self.space_display['y']['widget'])
+
+        self.space_display['z'] = {}
+        self.space_display['z']['widget'] = QtWidgets.QVBoxLayout()
+        self.space_display['z']['widget'].setObjectName("z_display")
+        self.space_display['z']['label'] = QtWidgets.QLabel(self.centralwidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.space_display['z']['label'].sizePolicy().hasHeightForWidth())
+        self.space_display['z']['label'].setSizePolicy(sizePolicy)
+        self.space_display['z']['label'].setMinimumSize(QtCore.QSize(20, 0))
+        self.space_display['z']['label'].setAlignment(QtCore.Qt.AlignCenter)
+        self.space_display['z']['label'].setObjectName("z_label")
+        self.space_display['z']['label'].setText("Z")
+        self.space_display['z']['widget'].addWidget(self.space_display['z']['label'])
+        self.space_display['z']['bar'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
+        self.space_display['z']['widget'].addWidget(self.space_display['z']['bar'])
+        self.space_display['widget'].addLayout(self.space_display['z']['widget'])
 
         spacerItem4 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
-        self.space_display.addItem(spacerItem4)
-        self.ambisonic_control.addLayout(self.space_display)
+        self.space_display['widget'].addItem(spacerItem4)
+        self.ambisonic_control.addLayout(self.space_display['widget'])

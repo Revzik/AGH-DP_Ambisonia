@@ -1,5 +1,5 @@
 import numpy as np
 
 
-def b_format(channel, phi, theta):
-    return np.zeros(channel.size), np.zeros(channel.size), np.zeros(channel.size), np.zeros(channel.size)
+def b_format(data, phi, theta):
+    return np.zeros(data.size), np.zeros(data.size), np.zeros(data.size), np.zeros(data.size)
