@@ -3,7 +3,7 @@ import simpleaudio as sa
 from PyQt5.QtWidgets import QFileDialog
 
 from src.io import open_wav
-from src.coding import encoder
+from src.coding import encoder, decoder
 
 
 class Track:
@@ -22,6 +22,14 @@ class Track:
 
         self.phi = 0
         self.theta = 0
+
+    def reset(self):
+        self.wave = None
+        self.W = None
+        self.X = None
+        self.Y = None
+        self.Z = None
+        self.fs = 0
 
 
 class MonoTrack(Track):
@@ -52,12 +60,22 @@ class MasterTrack(Track):
         super().__init__()
 
         self.channels = 1
+        self.inputs = []
+
+    def update(self):
+        self.reset()
+        for i in self.inputs:
+            self.W += i.W
+            self.X += i.X
+            self.Y += i.Y
+            self.Z += i.Z
+        self.decode()
+
+    def decode(self):
+        self.wave = decoder.to_stereo(self.W, self.X, self.Y, self.Z)
+
+    def play(self):
+        pass
 
     def save(self):
         pass
-
-    def decode(self):
-        pass
-
-    def play(self):
-
