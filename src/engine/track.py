@@ -45,7 +45,7 @@ class MonoTrack(Track):
             dialog.setNameFilter("Wave files (*.wav)")
             if dialog.exec_():
                 path = dialog.selectedFiles()
-                self.wave, self.fs = open_wav.load(path[0])
+                self.wave, self.fs = open_wav.load_wav(path[0])
                 self.loaded = True
         except Exception as e:
             print(e)

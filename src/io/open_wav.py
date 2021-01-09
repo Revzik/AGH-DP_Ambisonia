@@ -18,11 +18,3 @@ def load_wav(path):
 
     return data, channels, fs
 
-
-def load(path):
-    data, channels, fs = load_wav(path)
-
-    if channels > 1:
-        data = data[:, 0]
-
-    return data, fs

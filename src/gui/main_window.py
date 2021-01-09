@@ -11,6 +11,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from src.engine.track import MasterTrack, MonoTrack
 from src.gui.bar import Bar
+from src.gui.slider import LabeledSlider
 
 
 VOL_MIN = -60
@@ -46,7 +47,7 @@ class Ui_MainWindow(object):
 
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(648, 435)
+        MainWindow.resize(900, 500)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -75,7 +76,7 @@ class Ui_MainWindow(object):
         
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setEnabled(True)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 648, 21))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 900, 21))
         self.menubar.setNativeMenuBar(True)
         self.menubar.setObjectName("menubar")
         MainWindow.setMenuBar(self.menubar)
@@ -102,7 +103,8 @@ class Ui_MainWindow(object):
         
         self._create_master_track()
 
-        self.create_track()
+        for i in range(4):
+            self.create_track(stereo=True)
         
         self.track_controls.addLayout(self.mixer)
         
@@ -110,8 +112,8 @@ class Ui_MainWindow(object):
         
     def _create_button_bar(self):
         self.button_bar = QtWidgets.QHBoxLayout()
-        self.button_bar.setContentsMargins(6, -1, -1, -1)
-        self.button_bar.setSpacing(6)
+        self.button_bar.setContentsMargins(-1, -1, -1, -1)
+        self.button_bar.setSpacing(0)
         self.button_bar.setObjectName("button_bar")
         
         self.buttons['play'] = QtWidgets.QPushButton(self.centralwidget)
@@ -135,8 +137,19 @@ class Ui_MainWindow(object):
         self.buttons['stop'].setObjectName("stop")
         self.buttons['stop'].setText("Stop")
         self.button_bar.addWidget(self.buttons['stop'])
+
+        self.buttons['export'] = QtWidgets.QPushButton(self.centralwidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.buttons['export'].sizePolicy().hasHeightForWidth())
+        self.buttons['export'].setSizePolicy(sizePolicy)
+        self.buttons['export'].setMinimumSize(QtCore.QSize(60, 60))
+        self.buttons['export'].setObjectName("export")
+        self.buttons['export'].setText("Export")
+        self.button_bar.addWidget(self.buttons['export'])
         
-        spacerItem = QtWidgets.QSpacerItem(0, 20, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
+        spacerItem = QtWidgets.QSpacerItem(0, 20, QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Minimum)
         self.button_bar.addItem(spacerItem)
 
         self.track_controls.addLayout(self.button_bar)
@@ -158,28 +171,24 @@ class Ui_MainWindow(object):
         self.master['label'].setText("Master")
         self.master['widget'].addWidget(self.master['label'])
         
-        self.master['export'] = QtWidgets.QPushButton(self.centralwidget)
-        self.master['export'].setObjectName("master_export")
-        self.master['export'].setText("Export")
-        self.master['widget'].addWidget(self.master['export'])
+        self.master['mode'] = QtWidgets.QComboBox(self.centralwidget)
+        self.master['mode'].setObjectName("master_mode")
+        self.master['mode'].addItem("Stereo")
+        self.master['mode'].addItem("Binaural")
+        self.master['widget'].addWidget(self.master['mode'])
         
         self.master['volume'] = QtWidgets.QHBoxLayout()
         self.master['volume'].setObjectName("master_volume")
         
-        self.master['v_control'] = QtWidgets.QSlider(self.centralwidget)
+        self.master['v_control'] = LabeledSlider(VOL_MIN, VOL_MAX, interval=6, orientation=QtCore.Qt.Vertical,
+                                                 parent=self.centralwidget, side='right')
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.MinimumExpanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.master['v_control'].sizePolicy().hasHeightForWidth())
         self.master['v_control'].setSizePolicy(sizePolicy)
         self.master['v_control'].setMinimumSize(QtCore.QSize(0, 250))
-        self.master['v_control'].setMinimum(VOL_MIN)
-        self.master['v_control'].setMaximum(VOL_MAX)
-        self.master['v_control'].setProperty("value", 0)
-        self.master['v_control'].setOrientation(QtCore.Qt.Vertical)
-        self.master['v_control'].setInvertedAppearance(False)
-        self.master['v_control'].setTickPosition(QtWidgets.QSlider.TicksBothSides)
-        self.master['v_control'].setTickInterval(6)
+        self.master['v_control'].sl.setProperty("value", 0)
         self.master['v_control'].setObjectName("master_volume_control")
         self.master['volume'].addWidget(self.master['v_control'])
 
@@ -190,13 +199,12 @@ class Ui_MainWindow(object):
 
         self.mixer.addLayout(self.master['widget'])
         
-    def create_track(self):
+    def create_track(self, stereo=False):
         track_no = len(self.tracks)
-        track = {}
 
-        track['widget'] = QtWidgets.QVBoxLayout()
+        track = {'widget': QtWidgets.QVBoxLayout()}
         track['widget'].setObjectName("track{}".format(track_no))
-        
+
         track['label'] = QtWidgets.QLabel(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
@@ -209,7 +217,7 @@ class Ui_MainWindow(object):
         track['label'].setObjectName("track{}_label".format(track_no))
         track['label'].setText("Track {}".format(track_no + 1))
         track['widget'].addWidget(track['label'])
-        
+
         track['load'] = QtWidgets.QPushButton(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -221,36 +229,35 @@ class Ui_MainWindow(object):
         track['load'].setObjectName("tack{}_load".format(track_no))
         track['load'].setText("Load")
         track['widget'].addWidget(track['load'])
-        
+
         track['volume'] = QtWidgets.QHBoxLayout()
         track['volume'].setObjectName("track{}_volume".format(track_no))
 
-        track['v_control'] = QtWidgets.QSlider(self.centralwidget)
+        track['v_control'] = LabeledSlider(VOL_MIN, VOL_MAX, interval=6, orientation=QtCore.Qt.Vertical,
+                                                 parent=self.centralwidget, side='right')
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.MinimumExpanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(track['v_control'].sizePolicy().hasHeightForWidth())
         track['v_control'].setSizePolicy(sizePolicy)
         track['v_control'].setMinimumSize(QtCore.QSize(0, 250))
-        track['v_control'].setMinimum(VOL_MIN)
-        track['v_control'].setMaximum(VOL_MAX)
-        track['v_control'].setProperty("value", 0)
-        track['v_control'].setOrientation(QtCore.Qt.Vertical)
-        track['v_control'].setInvertedAppearance(False)
-        track['v_control'].setTickPosition(QtWidgets.QSlider.TicksBothSides)
-        track['v_control'].setTickInterval(6)
+        track['v_control'].sl.setProperty("value", 0)
         track['v_control'].setObjectName("track{}_volume_control".format(track_no))
         track['volume'].addWidget(track['v_control'])
 
-        track['v_bar'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
-        track['volume'].addWidget(track['v_bar'])
+        if stereo:
+            track['v_bar_left'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
+            track['volume'].addWidget(track['v_bar_left'])
+
+            track['v_bar_right'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
+            track['volume'].addWidget(track['v_bar_right'])
+        else:
+            track['v_bar'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
+            track['volume'].addWidget(track['v_bar'])
 
         track['widget'].addLayout(track['volume'])
 
         self.mixer.addLayout(track['widget'])
-
-        track['track'] = MonoTrack()
-        track['load'].clicked.connect(track['track'].load)
 
         self.tracks.append(track)
 
@@ -271,30 +278,95 @@ class Ui_MainWindow(object):
         self.space_control['widget'] = QtWidgets.QHBoxLayout()
         self.space_control['widget'].setObjectName("space_control")
 
-        self.space_control['horizontal'] = QtWidgets.QDial(self.centralwidget)
-        self.space_control['horizontal'].setMinimum(-180)
-        self.space_control['horizontal'].setMaximum(180)
-        self.space_control['horizontal'].setWrapping(True)
-        self.space_control['horizontal'].setNotchTarget(5.7)
-        self.space_control['horizontal'].setNotchesVisible(True)
-        self.space_control['horizontal'].setObjectName("horizontal_space")
-        self.space_control['widget'].addWidget(self.space_control['horizontal'])
+        # stereo spacing
+        self.space_control['stereo'] = QtWidgets.QVBoxLayout(self.centralwidget)
+        self.space_control['stereo'].setObjectName("stereo_separation")
 
-        self.space_control['vertical'] = QtWidgets.QSlider(self.centralwidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.space_control['stereo_label'] = QtWidgets.QLabel(self.centralwidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.space_control['vertical'].sizePolicy().hasHeightForWidth())
-        self.space_control['vertical'].setSizePolicy(sizePolicy)
-        self.space_control['vertical'].setMinimumSize(QtCore.QSize(0, 275))
-        self.space_control['vertical'].setMaximumSize(QtCore.QSize(16777215, 275))
-        self.space_control['vertical'].setMinimum(-90)
-        self.space_control['vertical'].setMaximum(90)
-        self.space_control['vertical'].setOrientation(QtCore.Qt.Vertical)
-        self.space_control['vertical'].setTickPosition(QtWidgets.QSlider.TicksBelow)
-        self.space_control['vertical'].setTickInterval(30)
+        sizePolicy.setHeightForWidth(self.space_control['stereo_label'].sizePolicy().hasHeightForWidth())
+        self.space_control['stereo_label'].setSizePolicy(sizePolicy)
+        self.space_control['stereo_label'].setMinimumSize(QtCore.QSize(60, 0))
+        self.space_control['stereo_label'].setMaximumSize(QtCore.QSize(60, 16777215))
+        self.space_control['stereo_label'].setAlignment(QtCore.Qt.AlignCenter)
+        self.space_control['stereo_label'].setObjectName("stereo_label")
+        self.space_control['stereo_label'].setText("Stereo sep.")
+        self.space_control['stereo'].addWidget(self.space_control['stereo_label'])
+
+        self.space_control['stereo_control'] = LabeledSlider(0, 90, interval=15, orientation=QtCore.Qt.Vertical,
+                                                 parent=self.centralwidget, side='right')
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.MinimumExpanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.space_control['stereo_control'].sizePolicy().hasHeightForWidth())
+        self.space_control['stereo_control'].setSizePolicy(sizePolicy)
+        self.space_control['stereo_control'].setMinimumSize(QtCore.QSize(0, 250))
+        self.space_control['stereo_control'].sl.setProperty("value", 0)
+        self.space_control['stereo_control'].setObjectName("stereo_separation_control")
+        self.space_control['stereo'].addWidget(self.space_control['stereo_control'])
+
+        self.space_control['widget'].addLayout(self.space_control['stereo'])
+
+        # horizontal position
+        self.space_control['horizontal'] = QtWidgets.QVBoxLayout(self.centralwidget)
+        self.space_control['horizontal'].setObjectName("horizontal_space")
+
+        self.space_control['horizontal_label'] = QtWidgets.QLabel(self.centralwidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.space_control['horizontal_label'].sizePolicy().hasHeightForWidth())
+        self.space_control['horizontal_label'].setSizePolicy(sizePolicy)
+        self.space_control['horizontal_label'].setMinimumSize(QtCore.QSize(0, 20))
+        self.space_control['horizontal_label'].setMaximumSize(QtCore.QSize(16777215, 20))
+        self.space_control['horizontal_label'].setAlignment(QtCore.Qt.AlignCenter)
+        self.space_control['horizontal_label'].setObjectName("horizontal_space_label")
+        self.space_control['horizontal_label'].setText("Horizontal")
+        self.space_control['horizontal'].addWidget(self.space_control['horizontal_label'])
+
+        self.space_control['horizontal_control'] = QtWidgets.QDial(self.centralwidget)
+        self.space_control['horizontal_control'].setMinimum(-180)
+        self.space_control['horizontal_control'].setMaximum(180)
+        self.space_control['horizontal_control'].setWrapping(True)
+        self.space_control['horizontal_control'].setNotchTarget(5.7)
+        self.space_control['horizontal_control'].setNotchesVisible(True)
+        self.space_control['horizontal_control'].setObjectName("horizontal_space_control")
+        self.space_control['horizontal'].addWidget(self.space_control['horizontal_control'])
+
+        self.space_control['widget'].addLayout(self.space_control['horizontal'])
+
+        # horizontal position
+        self.space_control['vertical'] = QtWidgets.QVBoxLayout(self.centralwidget)
         self.space_control['vertical'].setObjectName("vertical_space")
-        self.space_control['widget'].addWidget(self.space_control['vertical'])
+
+        self.space_control['vertical_label'] = QtWidgets.QLabel(self.centralwidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.space_control['vertical_label'].sizePolicy().hasHeightForWidth())
+        self.space_control['vertical_label'].setSizePolicy(sizePolicy)
+        self.space_control['vertical_label'].setMinimumSize(QtCore.QSize(60, 0))
+        self.space_control['vertical_label'].setMaximumSize(QtCore.QSize(60, 16777215))
+        self.space_control['vertical_label'].setAlignment(QtCore.Qt.AlignCenter)
+        self.space_control['vertical_label'].setObjectName("vertical_space_label")
+        self.space_control['vertical_label'].setText("Vertical")
+        self.space_control['vertical'].addWidget(self.space_control['vertical_label'])
+
+        self.space_control['vertical_control'] = LabeledSlider(-90, 90, interval=30, orientation=QtCore.Qt.Vertical,
+                                                             parent=self.centralwidget, side='left')
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.MinimumExpanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.space_control['vertical_control'].sizePolicy().hasHeightForWidth())
+        self.space_control['vertical_control'].setSizePolicy(sizePolicy)
+        self.space_control['vertical_control'].setMinimumSize(QtCore.QSize(0, 250))
+        self.space_control['vertical_control'].sl.setProperty("value", 0)
+        self.space_control['vertical_control'].setObjectName("vertical_control")
+        self.space_control['vertical'].addWidget(self.space_control['vertical_control'])
+
+        self.space_control['widget'].addLayout(self.space_control['vertical'])
 
         self.ambisonic_control.addLayout(self.space_control['widget'])
 
