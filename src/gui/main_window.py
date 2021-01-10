@@ -9,7 +9,7 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from src.engine.track import MasterTrack, MonoTrack
+from src.engine import track, mixer
 from src.gui.bar import Bar
 from src.gui.slider import LabeledSlider
 
@@ -18,6 +18,8 @@ VOL_MIN = -60
 VOL_MAX = 12
 VOL_YELLOW = -12
 VOL_RED = 0
+
+TRACKS_NO = 4
 
 
 class Ui_MainWindow(object):
@@ -31,7 +33,8 @@ class Ui_MainWindow(object):
         self.button_bar = None
         self.buttons = {}
 
-        self.mixer = None
+        self.mixer_widget = None
+        self.mixer = mixer.Mixer(TRACKS_NO)
         self.master = {}
         self.tracks = []
 
@@ -63,12 +66,12 @@ class Ui_MainWindow(object):
         self.main_layout.setSizeConstraint(QtWidgets.QLayout.SetMinimumSize)
         self.main_layout.setObjectName("main_layout")
         
-        self._create_track_controls()
+        self.create_track_controls()
         
         spacerItem1 = QtWidgets.QSpacerItem(40, 0, QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Minimum)
         self.main_layout.addItem(spacerItem1)
         
-        self._create_ambisonic_control()
+        self.create_ambisonic_control()
         
         self.gridLayout.addLayout(self.main_layout, 0, 0, 1, 1)
         
@@ -92,25 +95,25 @@ class Ui_MainWindow(object):
 
         self.initialized = True
         
-    def _create_track_controls(self):
+    def create_track_controls(self):
         self.track_controls = QtWidgets.QVBoxLayout()
         self.track_controls.setObjectName("track_controls")
         
-        self._create_button_bar()
+        self.create_button_bar()
         
-        self.mixer = QtWidgets.QHBoxLayout()
-        self.mixer.setObjectName("mixer")
+        self.mixer_widget = QtWidgets.QHBoxLayout()
+        self.mixer_widget.setObjectName("mixer_widget")
         
-        self._create_master_track()
+        self.create_master_track()
 
-        for i in range(4):
-            self.create_track(stereo=True)
+        for i in range(TRACKS_NO):
+            self.create_track(stereo=False)
         
-        self.track_controls.addLayout(self.mixer)
+        self.track_controls.addLayout(self.mixer_widget)
         
         self.main_layout.addLayout(self.track_controls)
         
-    def _create_button_bar(self):
+    def create_button_bar(self):
         self.button_bar = QtWidgets.QHBoxLayout()
         self.button_bar.setContentsMargins(-1, -1, -1, -1)
         self.button_bar.setSpacing(0)
@@ -154,23 +157,24 @@ class Ui_MainWindow(object):
 
         self.track_controls.addLayout(self.button_bar)
         
-    def _create_master_track(self):
+    def create_master_track(self):
         self.master['widget'] = QtWidgets.QVBoxLayout()
         self.master['widget'].setObjectName("master")
-        
-        self.master['label'] = QtWidgets.QLabel(self.centralwidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
+
+        self.master['label'] = QtWidgets.QPushButton(self.centralwidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.master['label'].sizePolicy().hasHeightForWidth())
         self.master['label'].setSizePolicy(sizePolicy)
         self.master['label'].setMinimumSize(QtCore.QSize(100, 0))
-        self.master['label'].setMaximumSize(QtCore.QSize(100, 16777215))
-        self.master['label'].setAlignment(QtCore.Qt.AlignCenter)
+        self.master['label'].setMaximumSize(QtCore.QSize(100, 25))
         self.master['label'].setObjectName("master_label")
         self.master['label'].setText("Master")
+        self.master['label'].setCheckable(True)
+        self.master['label'].clicked.connect(lambda: self.update_ambisonic_control(-1))
         self.master['widget'].addWidget(self.master['label'])
-        
+
         self.master['mode'] = QtWidgets.QComboBox(self.centralwidget)
         self.master['mode'].setObjectName("master_mode")
         self.master['mode'].addItem("Stereo")
@@ -192,89 +196,94 @@ class Ui_MainWindow(object):
         self.master['v_control'].setObjectName("master_volume_control")
         self.master['volume'].addWidget(self.master['v_control'])
 
-        self.master['v_display'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
-        self.master['volume'].addWidget(self.master['v_display'])
+        self.master['v_display_l'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
+        self.master['volume'].addWidget(self.master['v_display_l'])
+
+        self.master['v_display_r'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
+        self.master['volume'].addWidget(self.master['v_display_r'])
         
         self.master['widget'].addLayout(self.master['volume'])
 
-        self.mixer.addLayout(self.master['widget'])
+        self.mixer_widget.addLayout(self.master['widget'])
         
     def create_track(self, stereo=False):
         track_no = len(self.tracks)
 
-        track = {'widget': QtWidgets.QVBoxLayout()}
-        track['widget'].setObjectName("track{}".format(track_no))
+        t = {'widget': QtWidgets.QVBoxLayout()}
+        t['widget'].setObjectName("track{}".format(track_no))
 
-        track['label'] = QtWidgets.QLabel(self.centralwidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(track['label'].sizePolicy().hasHeightForWidth())
-        track['label'].setSizePolicy(sizePolicy)
-        track['label'].setMinimumSize(QtCore.QSize(100, 0))
-        track['label'].setMaximumSize(QtCore.QSize(100, 16777215))
-        track['label'].setAlignment(QtCore.Qt.AlignCenter)
-        track['label'].setObjectName("track{}_label".format(track_no))
-        track['label'].setText("Track {}".format(track_no + 1))
-        track['widget'].addWidget(track['label'])
-
-        track['load'] = QtWidgets.QPushButton(self.centralwidget)
+        t['label'] = QtWidgets.QPushButton(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(track['load'].sizePolicy().hasHeightForWidth())
-        track['load'].setSizePolicy(sizePolicy)
-        track['load'].setMinimumSize(QtCore.QSize(0, 0))
-        track['load'].setMaximumSize(QtCore.QSize(16777215, 25))
-        track['load'].setObjectName("tack{}_load".format(track_no))
-        track['load'].setText("Load")
-        track['widget'].addWidget(track['load'])
+        sizePolicy.setHeightForWidth(t['label'].sizePolicy().hasHeightForWidth())
+        t['label'].setSizePolicy(sizePolicy)
+        t['label'].setMinimumSize(QtCore.QSize(100, 0))
+        t['label'].setMaximumSize(QtCore.QSize(100, 25))
+        t['label'].setObjectName("tack{}_label".format(track_no))
+        t['label'].setText("Track {}".format(track_no + 1))
+        t['label'].setProperty('track_id', track_no)
+        t['label'].setCheckable(True)
+        t['label'].clicked.connect(lambda: self.update_ambisonic_control(track_no))
+        t['widget'].addWidget(t['label'])
 
-        track['volume'] = QtWidgets.QHBoxLayout()
-        track['volume'].setObjectName("track{}_volume".format(track_no))
+        t['load'] = QtWidgets.QPushButton(self.centralwidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(t['load'].sizePolicy().hasHeightForWidth())
+        t['load'].setSizePolicy(sizePolicy)
+        t['load'].setMinimumSize(QtCore.QSize(0, 0))
+        t['load'].setMaximumSize(QtCore.QSize(16777215, 25))
+        t['load'].setObjectName("tack{}_load".format(track_no))
+        t['load'].setText("Load")
+        t['widget'].addWidget(t['load'])
 
-        track['v_control'] = LabeledSlider(VOL_MIN, VOL_MAX, interval=6, orientation=QtCore.Qt.Vertical,
+        t['volume'] = QtWidgets.QHBoxLayout()
+        t['volume'].setObjectName("track{}_volume".format(track_no))
+
+        t['v_control'] = LabeledSlider(VOL_MIN, VOL_MAX, interval=6, orientation=QtCore.Qt.Vertical,
                                                  parent=self.centralwidget, side='right')
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.MinimumExpanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(track['v_control'].sizePolicy().hasHeightForWidth())
-        track['v_control'].setSizePolicy(sizePolicy)
-        track['v_control'].setMinimumSize(QtCore.QSize(0, 250))
-        track['v_control'].sl.setProperty("value", 0)
-        track['v_control'].setObjectName("track{}_volume_control".format(track_no))
-        track['volume'].addWidget(track['v_control'])
+        sizePolicy.setHeightForWidth(t['v_control'].sizePolicy().hasHeightForWidth())
+        t['v_control'].setSizePolicy(sizePolicy)
+        t['v_control'].setMinimumSize(QtCore.QSize(0, 250))
+        t['v_control'].sl.setProperty("value", 0)
+        t['v_control'].setObjectName("track{}_volume_control".format(track_no))
+        t['volume'].addWidget(t['v_control'])
 
         if stereo:
-            track['v_bar_left'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
-            track['volume'].addWidget(track['v_bar_left'])
+            t['v_bar_left'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
+            t['volume'].addWidget(t['v_bar_left'])
 
-            track['v_bar_right'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
-            track['volume'].addWidget(track['v_bar_right'])
+            t['v_bar_right'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
+            t['volume'].addWidget(t['v_bar_right'])
         else:
-            track['v_bar'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
-            track['volume'].addWidget(track['v_bar'])
+            t['v_bar'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
+            t['volume'].addWidget(t['v_bar'])
 
-        track['widget'].addLayout(track['volume'])
+        t['widget'].addLayout(t['volume'])
 
-        self.mixer.addLayout(track['widget'])
+        self.mixer_widget.addLayout(t['widget'])
 
-        self.tracks.append(track)
+        self.tracks.append(t)
 
-    def _create_ambisonic_control(self):
+    def create_ambisonic_control(self):
         self.ambisonic_control = QtWidgets.QVBoxLayout()
         self.ambisonic_control.setObjectName("ambisonic_control")
 
         spacerItem2 = QtWidgets.QSpacerItem(360, 0, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Minimum)
         self.ambisonic_control.addItem(spacerItem2)
 
-        self._create_space_control()
+        self.create_space_control()
 
-        self._create_space_display()
+        self.create_space_display()
 
         self.main_layout.addLayout(self.ambisonic_control)
 
-    def _create_space_control(self):
+    def create_space_control(self):
         self.space_control['widget'] = QtWidgets.QHBoxLayout()
         self.space_control['widget'].setObjectName("space_control")
 
@@ -370,7 +379,7 @@ class Ui_MainWindow(object):
 
         self.ambisonic_control.addLayout(self.space_control['widget'])
 
-    def _create_space_display(self):
+    def create_space_display(self):
         self.space_display['widget'] = QtWidgets.QHBoxLayout()
         self.space_display['widget'].setObjectName("space_display")
 
@@ -452,3 +461,31 @@ class Ui_MainWindow(object):
         spacerItem4 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.space_display['widget'].addItem(spacerItem4)
         self.ambisonic_control.addLayout(self.space_display['widget'])
+
+    def update_ambisonic_control(self, index):
+        if index == -1:
+            phi = self.mixer.master.phi
+            theta = self.mixer.master.theta
+            stereo = 0
+            stereo_toggle = False
+        else:
+            phi = self.mixer.tracks[index].phi
+            theta = self.mixer.tracks[index].theta
+            if isinstance(self.mixer.tracks[index], track.StereoTrack):
+                stereo = self.mixer.tracks[index].stereo_angle
+                stereo_toggle = True
+            else:
+                stereo = 0
+                stereo_toggle = False
+
+        print('Selected track {}, phi: {}, theta: {}, stereo toggled: {}, stereo angle: {}'.
+              format(index, phi, theta, stereo_toggle, stereo))
+
+        self.space_control['stereo_control'].sl.setProperty('value', stereo)
+        self.space_control['stereo_control'].sl.setEnabled(stereo_toggle)
+        self.space_control['horizontal_control'].setProperty('value', phi)
+        self.space_control['vertical_control'].sl.setProperty('value', theta)
+
+        for i, t in enumerate(self.tracks):
+            t['label'].setChecked(i == index)
+        self.master['label'].setChecked(index == -1)

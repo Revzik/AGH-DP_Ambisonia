@@ -32,11 +32,9 @@ class Track:
         self.fs = 0
 
 
-class MonoTrack(Track):
+class InputTrack(Track):
     def __init__(self):
         super().__init__()
-
-        self.channels = 1
 
     def load(self):
         try:
@@ -52,7 +50,33 @@ class MonoTrack(Track):
             self.loaded = False
 
     def encode(self):
+        pass
+
+
+class MonoTrack(InputTrack):
+    def __init__(self):
+        super().__init__()
+
+        self.channels = 1
+
+    def encode(self):
         self.W, self.X, self.Y, self.Z = encoder.b_format(self.wave, self.phi, self.theta)
+
+
+class StereoTrack(InputTrack):
+    def __init__(self):
+        super().__init__()
+
+        self.channels = 2
+        self.stereo_angle = 30
+
+    def encode(self):
+        W_l, X_l, Y_l, Z_l = encoder.b_format(self.wave[:, 0], self.phi - self.stereo_angle, self.theta)
+        W_r, X_r, Y_r, Z_r = encoder.b_format(self.wave[:, 0], self.phi + self.stereo_angle, self.theta)
+        self.W = W_l + W_r
+        self.X = X_l + X_r
+        self.Y = Y_l + Y_r
+        self.Z = Z_l + Z_r
 
 
 class MasterTrack(Track):
