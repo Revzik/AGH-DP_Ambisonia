@@ -11,7 +11,7 @@ def to_stereo(W, X, Y, Z):
     return np.vstack((left, right))
 
 
-def to_headphones(W, X, Y, Z):
+def to_binaural(W, X, Y, Z):
     phi_l = -90
     phi_r = 90
 

@@ -107,7 +107,7 @@ class Ui_MainWindow(object):
         self.create_master_track()
 
         for i in range(TRACKS_NO):
-            self.create_track(stereo=False)
+            self.tracks.append(self.create_track(stereo=False))
         
         self.track_controls.addLayout(self.mixer_widget)
         
@@ -237,13 +237,14 @@ class Ui_MainWindow(object):
         t['load'].setMaximumSize(QtCore.QSize(16777215, 25))
         t['load'].setObjectName("tack{}_load".format(track_no))
         t['load'].setText("Load")
+        t['load'].clicked.connect(lambda: self.load_track(track_no))
         t['widget'].addWidget(t['load'])
 
         t['volume'] = QtWidgets.QHBoxLayout()
         t['volume'].setObjectName("track{}_volume".format(track_no))
 
         t['v_control'] = LabeledSlider(VOL_MIN, VOL_MAX, interval=6, orientation=QtCore.Qt.Vertical,
-                                                 parent=self.centralwidget, side='right')
+                                       parent=self.centralwidget, side='right')
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.MinimumExpanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -255,11 +256,11 @@ class Ui_MainWindow(object):
         t['volume'].addWidget(t['v_control'])
 
         if stereo:
-            t['v_bar_left'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
-            t['volume'].addWidget(t['v_bar_left'])
+            t['v_bar_l'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
+            t['volume'].addWidget(t['v_bar_l'])
 
-            t['v_bar_right'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
-            t['volume'].addWidget(t['v_bar_right'])
+            t['v_bar_r'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
+            t['volume'].addWidget(t['v_bar_r'])
         else:
             t['v_bar'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
             t['volume'].addWidget(t['v_bar'])
@@ -268,7 +269,7 @@ class Ui_MainWindow(object):
 
         self.mixer_widget.addLayout(t['widget'])
 
-        self.tracks.append(t)
+        return t
 
     def create_ambisonic_control(self):
         self.ambisonic_control = QtWidgets.QVBoxLayout()
@@ -305,7 +306,7 @@ class Ui_MainWindow(object):
         self.space_control['stereo'].addWidget(self.space_control['stereo_label'])
 
         self.space_control['stereo_control'] = LabeledSlider(0, 90, interval=15, orientation=QtCore.Qt.Vertical,
-                                                 parent=self.centralwidget, side='right')
+                                                             parent=self.centralwidget, side='right')
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.MinimumExpanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -314,6 +315,7 @@ class Ui_MainWindow(object):
         self.space_control['stereo_control'].setMinimumSize(QtCore.QSize(0, 250))
         self.space_control['stereo_control'].sl.setProperty("value", 0)
         self.space_control['stereo_control'].setObjectName("stereo_separation_control")
+        self.space_control['stereo_control'].sl.setEnabled(False)
         self.space_control['stereo'].addWidget(self.space_control['stereo_control'])
 
         self.space_control['widget'].addLayout(self.space_control['stereo'])
@@ -342,6 +344,7 @@ class Ui_MainWindow(object):
         self.space_control['horizontal_control'].setNotchTarget(5.7)
         self.space_control['horizontal_control'].setNotchesVisible(True)
         self.space_control['horizontal_control'].setObjectName("horizontal_space_control")
+        self.space_control['horizontal_control'].setEnabled(False)
         self.space_control['horizontal'].addWidget(self.space_control['horizontal_control'])
 
         self.space_control['widget'].addLayout(self.space_control['horizontal'])
@@ -373,6 +376,7 @@ class Ui_MainWindow(object):
         self.space_control['vertical_control'].setMinimumSize(QtCore.QSize(0, 250))
         self.space_control['vertical_control'].sl.setProperty("value", 0)
         self.space_control['vertical_control'].setObjectName("vertical_control")
+        self.space_control['vertical_control'].sl.setEnabled(False)
         self.space_control['vertical'].addWidget(self.space_control['vertical_control'])
 
         self.space_control['widget'].addLayout(self.space_control['vertical'])
@@ -471,7 +475,7 @@ class Ui_MainWindow(object):
         else:
             phi = self.mixer.tracks[index].phi
             theta = self.mixer.tracks[index].theta
-            if isinstance(self.mixer.tracks[index], track.StereoTrack):
+            if self.mixer.tracks[index].type == track.STEREO:
                 stereo = self.mixer.tracks[index].stereo_angle
                 stereo_toggle = True
             else:
@@ -484,8 +488,54 @@ class Ui_MainWindow(object):
         self.space_control['stereo_control'].sl.setProperty('value', stereo)
         self.space_control['stereo_control'].sl.setEnabled(stereo_toggle)
         self.space_control['horizontal_control'].setProperty('value', phi)
+        self.space_control['horizontal_control'].setEnabled(True)
         self.space_control['vertical_control'].sl.setProperty('value', theta)
+        self.space_control['vertical_control'].sl.setEnabled(True)
 
         for i, t in enumerate(self.tracks):
             t['label'].setChecked(i == index)
         self.master['label'].setChecked(index == -1)
+
+    def load_track(self, index):
+        try:
+            previous_type = self.mixer.tracks[index].type
+
+            dialog = QtWidgets.QFileDialog()
+            dialog.setFileMode(QtWidgets.QFileDialog.ExistingFile)
+            dialog.setNameFilter("Wave files (*.wav)")
+            if dialog.exec_():
+                path = dialog.selectedFiles()
+                self.mixer.tracks[index].load(path[0])
+
+                current_type = self.mixer.tracks[index].type
+                if not current_type == previous_type:
+                    self.update_track_bars(index, previous_type, current_type)
+
+        except Exception as e:
+            error_dialog = QtWidgets.QErrorMessage()
+            error_dialog.showMessage('Could not load the file!')
+
+    def update_track_bars(self, index, old_type, new_type):
+        if old_type == track.MONO:
+            self.tracks[index]['volume'].removeWidget(self.tracks[index]['v_bar'])
+            self.tracks[index]['v_bar'].deleteLater()
+            del self.tracks[index]['v_bar']
+        elif old_type == track.STEREO:
+            self.tracks[index]['volume'].removeWidget(self.tracks[index]['v_bar_l'])
+            self.tracks[index]['v_bar_l'].deleteLater()
+            del self.tracks[index]['v_bar_l']
+            self.tracks[index]['volume'].removeWidget(self.tracks[index]['v_bar_r'])
+            self.tracks[index]['v_bar_r'].deleteLater()
+            del self.tracks[index]['v_bar_r']
+
+        if new_type == track.MONO:
+            self.tracks[index]['v_bar'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
+            self.tracks[index]['volume'].addWidget(self.tracks[index]['v_bar'])
+        elif new_type == track.STEREO:
+            self.tracks[index]['v_bar_l'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
+            self.tracks[index]['volume'].addWidget(self.tracks[index]['v_bar_l'])
+
+            self.tracks[index]['v_bar_r'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
+            self.tracks[index]['volume'].addWidget(self.tracks[index]['v_bar_r'])
+
+        self.update_ambisonic_control(index)

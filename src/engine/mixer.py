@@ -1,4 +1,4 @@
-from src.engine.track import Track, MonoTrack, MasterTrack, StereoTrack
+from src.engine.track import MasterTrack, InputTrack
 
 
 class Mixer:
@@ -7,6 +7,6 @@ class Mixer:
         self.tracks = []
 
         for i in range(tracks_number):
-            self.tracks.append(MonoTrack())
+            self.tracks.append(InputTrack())
             self.tracks[i].phi = 15 * i
             self.tracks[i].theta = 15 * i
