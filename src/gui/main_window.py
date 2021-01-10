@@ -37,6 +37,7 @@ class Ui_MainWindow(object):
         self.mixer = mixer.Mixer(TRACKS_NO)
         self.master = {}
         self.tracks = []
+        self.selected_track = -1
 
         self.ambisonic_control = None
         
@@ -316,6 +317,7 @@ class Ui_MainWindow(object):
         self.space_control['stereo_control'].sl.setProperty("value", 0)
         self.space_control['stereo_control'].setObjectName("stereo_separation_control")
         self.space_control['stereo_control'].sl.setEnabled(False)
+        self.space_control['stereo_control'].sl.valueChanged.connect(self.read_stereo_separation)
         self.space_control['stereo'].addWidget(self.space_control['stereo_control'])
 
         self.space_control['widget'].addLayout(self.space_control['stereo'])
@@ -345,6 +347,7 @@ class Ui_MainWindow(object):
         self.space_control['horizontal_control'].setNotchesVisible(True)
         self.space_control['horizontal_control'].setObjectName("horizontal_space_control")
         self.space_control['horizontal_control'].setEnabled(False)
+        self.space_control['horizontal_control'].valueChanged.connect(self.read_rotation)
         self.space_control['horizontal'].addWidget(self.space_control['horizontal_control'])
 
         self.space_control['widget'].addLayout(self.space_control['horizontal'])
@@ -367,7 +370,7 @@ class Ui_MainWindow(object):
         self.space_control['vertical'].addWidget(self.space_control['vertical_label'])
 
         self.space_control['vertical_control'] = LabeledSlider(-90, 90, interval=30, orientation=QtCore.Qt.Vertical,
-                                                             parent=self.centralwidget, side='left')
+                                                               parent=self.centralwidget, side='left')
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.MinimumExpanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -377,6 +380,7 @@ class Ui_MainWindow(object):
         self.space_control['vertical_control'].sl.setProperty("value", 0)
         self.space_control['vertical_control'].setObjectName("vertical_control")
         self.space_control['vertical_control'].sl.setEnabled(False)
+        self.space_control['vertical_control'].sl.valueChanged.connect(self.read_elevation)
         self.space_control['vertical'].addWidget(self.space_control['vertical_control'])
 
         self.space_control['widget'].addLayout(self.space_control['vertical'])
@@ -467,6 +471,8 @@ class Ui_MainWindow(object):
         self.ambisonic_control.addLayout(self.space_display['widget'])
 
     def update_ambisonic_control(self, index):
+        self.selected_track = index
+
         if index == -1:
             phi = self.mixer.master.phi
             theta = self.mixer.master.theta
@@ -539,3 +545,26 @@ class Ui_MainWindow(object):
             self.tracks[index]['volume'].addWidget(self.tracks[index]['v_bar_r'])
 
         self.update_ambisonic_control(index)
+
+        print('Changed track {} type to {}'.format(index, new_type))
+
+    def read_stereo_separation(self):
+        value = self.space_control['stereo_control'].sl.value()
+        if self.selected_track == -1:
+            self.mixer.master.stereo_angle = value
+        else:
+            self.mixer.tracks[self.selected_track].stereo_angle = value
+
+    def read_rotation(self):
+        value = self.space_control['horizontal_control'].value()
+        if self.selected_track == -1:
+            self.mixer.master.phi = value
+        else:
+            self.mixer.tracks[self.selected_track].phi = value
+
+    def read_elevation(self):
+        value = self.space_control['vertical_control'].sl.value()
+        if self.selected_track == -1:
+            self.mixer.master.theta = value
+        else:
+            self.mixer.tracks[self.selected_track].theta = value

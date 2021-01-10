@@ -8,5 +8,3 @@ class Mixer:
 
         for i in range(tracks_number):
             self.tracks.append(InputTrack())
-            self.tracks[i].phi = 15 * i
-            self.tracks[i].theta = 15 * i
