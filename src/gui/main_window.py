@@ -180,6 +180,7 @@ class Ui_MainWindow(object):
         self.master['mode'].setObjectName("master_mode")
         self.master['mode'].addItem("Stereo")
         self.master['mode'].addItem("Binaural")
+        self.master['mode'].currentIndexChanged.connect(self.update_master_format)
         self.master['widget'].addWidget(self.master['mode'])
         
         self.master['volume'] = QtWidgets.QHBoxLayout()
@@ -478,8 +479,12 @@ class Ui_MainWindow(object):
         if index == -1:
             phi = self.mixer.master.phi
             theta = self.mixer.master.theta
-            stereo = 0
-            stereo_toggle = False
+            if self.mixer.master.type == track.STEREO:
+                stereo = self.mixer.master.stereo_angle
+                stereo_toggle = True
+            else:
+                stereo = 0
+                stereo_toggle = False
         else:
             phi = self.mixer.tracks[index].phi
             theta = self.mixer.tracks[index].theta
@@ -557,6 +562,15 @@ class Ui_MainWindow(object):
         else:
             self.mixer.tracks[self.selected_track].stereo_angle = value
 
+    def update_master_format(self, index):
+        if index == 0:
+            self.mixer.master.type = track.STEREO
+            self.mixer.master.stereo_angle = 30
+        elif index == 1:
+            self.mixer.master.type = track.BINAURAL
+        self.update_ambisonic_control(-1)
+
+
     def read_rotation(self):
         value = self.space_control['horizontal_control'].value()
         if self.selected_track == -1:
@@ -576,3 +590,15 @@ class Ui_MainWindow(object):
             self.mixer.master.gain = self.master['v_control'].sl.value()
         else:
             self.mixer.tracks[index].gain = self.tracks[index]['v_control'].sl.value()
+
+    def code(self):
+        pass
+
+    def play(self):
+        pass
+
+    def stop(self):
+        pass
+
+    def export(self):
+        pass
