@@ -1,5 +1,4 @@
 import scipy.io.wavfile as wav
-import scipy.signal as sig
 import numpy as np
 
 
@@ -9,12 +8,15 @@ def load_wav(path):
     if len(data.shape) == 2:
         channels = data.shape[1]
 
+    if data.dtype == np.int16:
+        data = np.array(data / 2 ** 16, dtype=np.float32)
     if data.dtype == np.int32:
-        data = np.array(data / 32768, dtype=np.int16)
+        data = np.array(data / 2 ** 32, dtype=np.float32)
     elif data.dtype == np.uint8:
-        data = np.array((data - 128) * 256, dtype=np.int16)
-    elif data.dtype == np.float32:
-        data = np.array(data * 32768, dtype=np.int16)
+        data = np.array((data - 128) / 256, dtype=np.float32)
 
     return data, channels, fs
 
+
+def save_wav(path, data, fs):
+    wav.write(path, fs, data.T)

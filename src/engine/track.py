@@ -1,7 +1,6 @@
 import numpy as np
-import simpleaudio as sa
 
-from src.io import open_wav
+from src.io import file
 from src.coding import encoder, decoder
 
 
@@ -15,6 +14,7 @@ class Track:
         self.loaded = False
 
         self.wave = None
+        self.length = 1
         self.channels = 1
         self.gain = 0
         self.fs = 0
@@ -35,10 +35,7 @@ class Track:
         self.X = None
         self.Y = None
         self.Z = None
-        self.fs = 0
-
-    def send(self):
-        return self.W * dB(self.gain), self.X * dB(self.gain), self.Y * dB(self.gain), self.Z * dB(self.gain)
+        self.fs = 44100
 
 
 class InputTrack(Track):
@@ -46,15 +43,20 @@ class InputTrack(Track):
         super().__init__()
 
     def load(self, path):
-        self.wave, self.channels, self.fs = open_wav.load_wav(path)
-        self.loaded = True
-        if self.channels == 1:
-            self.type = MONO
-        else:
-            self.type = STEREO
+        try:
+            self.wave, self.channels, self.fs = file.load_wav(path)
+            self.length = self.wave.size
+            self.loaded = True
+            if self.channels == 1:
+                self.type = MONO
+            else:
+                self.type = STEREO
 
-        print('Loaded track from {}, track type: {}, track sample rate: {}'.
-              format(path, self.type, self.fs))
+            print('Loaded track from {}, track type: {}, track sample rate: {}'.
+                  format(path, self.type, self.fs))
+        except Exception as e:
+            self.loaded = False
+            raise e
 
     def encode(self):
         if self.type == MONO:
@@ -67,6 +69,9 @@ class InputTrack(Track):
             self.Y = Y_l + Y_r
             self.Z = Z_l + Z_r
 
+    def send(self):
+        return self.W * dB(self.gain), self.X * dB(self.gain), self.Y * dB(self.gain), self.Z * dB(self.gain)
+
 
 class MasterTrack(Track):
     def __init__(self):
@@ -74,22 +79,40 @@ class MasterTrack(Track):
 
         self.channels = 2
         self.type = STEREO
-        self.inputs = []
-
-    def update(self):
-        self.reset()
-        for i in self.inputs:
-            self.W += i.W
-            self.X += i.X
-            self.Y += i.Y
-            self.Z += i.Z
-        self.decode()
+        self.fs = 44100
 
     def decode(self):
         if self.type == STEREO:
             self.wave = decoder.to_stereo(self.W, self.X, self.Y, self.Z)
         else:
             self.wave = decoder.to_binaural(self.W, self.X, self.Y, self.Z)
+
+    def export(self):
+        return self.wave * dB(self.gain), self.channels, self.fs
+
+    def reset(self):
+        self.length = 1
+        self.wave = np.zeros((self.length, self.channels))
+        self.W = np.zeros(self.length)
+        self.X = np.zeros(self.length)
+        self.Y = np.zeros(self.length)
+        self.Z = np.zeros(self.length)
+        self.fs = 44100
+
+    def receive(self, W, X, Y, Z):
+        master_length = self.length
+        track_length = W.size
+
+        if master_length < track_length:
+            self.W = np.pad(self.W, (0, track_length - master_length), 'constant')
+            self.X = np.pad(self.X, (0, track_length - master_length), 'constant')
+            self.Y = np.pad(self.Y, (0, track_length - master_length), 'constant')
+            self.Z = np.pad(self.Z, (0, track_length - master_length), 'constant')
+
+        self.W[:track_length] += W
+        self.X[:track_length] += X
+        self.Y[:track_length] += Y
+        self.Z[:track_length] += Z
 
 
 def dB(value):

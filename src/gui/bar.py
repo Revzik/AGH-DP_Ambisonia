@@ -16,7 +16,7 @@ class Bar(QtWidgets.QWidget):
         self.setMaximumWidth(5)
         self.setMaximumWidth(20)
 
-        self.value = 12
+        self.value = vmin
 
         self.vmin = vmin
         self.vmax = vmax
