@@ -195,6 +195,7 @@ class Ui_MainWindow(object):
         self.master['v_control'].setMinimumSize(QtCore.QSize(0, 250))
         self.master['v_control'].sl.setProperty("value", 0)
         self.master['v_control'].setObjectName("master_volume_control")
+        self.master['v_control'].sl.valueChanged.connect(lambda: self.read_gain(-1))
         self.master['volume'].addWidget(self.master['v_control'])
 
         self.master['v_display_l'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
@@ -254,6 +255,7 @@ class Ui_MainWindow(object):
         t['v_control'].setMinimumSize(QtCore.QSize(0, 250))
         t['v_control'].sl.setProperty("value", 0)
         t['v_control'].setObjectName("track{}_volume_control".format(track_no))
+        t['v_control'].sl.valueChanged.connect(lambda: self.read_gain(track_no))
         t['volume'].addWidget(t['v_control'])
 
         if stereo:
@@ -568,3 +570,9 @@ class Ui_MainWindow(object):
             self.mixer.master.theta = value
         else:
             self.mixer.tracks[self.selected_track].theta = value
+
+    def read_gain(self, index):
+        if index == -1:
+            self.mixer.master.gain = self.master['v_control'].sl.value()
+        else:
+            self.mixer.tracks[index].gain = self.tracks[index]['v_control'].sl.value()

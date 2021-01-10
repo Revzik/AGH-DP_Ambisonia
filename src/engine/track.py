@@ -37,6 +37,9 @@ class Track:
         self.Z = None
         self.fs = 0
 
+    def send(self):
+        return self.W * dB(self.gain), self.X * dB(self.gain), self.Y * dB(self.gain), self.Z * dB(self.gain)
+
 
 class InputTrack(Track):
     def __init__(self):
@@ -88,8 +91,6 @@ class MasterTrack(Track):
         else:
             self.wave = decoder.to_binaural(self.W, self.X, self.Y, self.Z)
 
-    def play(self):
-        pass
 
-    def save(self):
-        pass
+def dB(value):
+    return np.power(10, value / 10)
