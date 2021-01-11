@@ -193,11 +193,11 @@ class Ui_MainWindow(object):
         self.master['v_control'].sl.valueChanged.connect(lambda: self.read_gain(-1))
         self.master['volume'].addWidget(self.master['v_control'])
 
-        self.master['v_display_l'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
-        self.master['volume'].addWidget(self.master['v_display_l'])
-
-        self.master['v_display_r'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
-        self.master['volume'].addWidget(self.master['v_display_r'])
+        # self.master['v_display_l'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
+        # self.master['volume'].addWidget(self.master['v_display_l'])
+        #
+        # self.master['v_display_r'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
+        # self.master['volume'].addWidget(self.master['v_display_r'])
         
         self.master['widget'].addLayout(self.master['volume'])
 
@@ -253,15 +253,15 @@ class Ui_MainWindow(object):
         t['v_control'].sl.valueChanged.connect(lambda: self.read_gain(track_no))
         t['volume'].addWidget(t['v_control'])
 
-        if stereo:
-            t['v_bar_l'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
-            t['volume'].addWidget(t['v_bar_l'])
-
-            t['v_bar_r'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
-            t['volume'].addWidget(t['v_bar_r'])
-        else:
-            t['v_bar'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
-            t['volume'].addWidget(t['v_bar'])
+        # if stereo:
+        #     t['v_bar_l'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
+        #     t['volume'].addWidget(t['v_bar_l'])
+        #
+        #     t['v_bar_r'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
+        #     t['volume'].addWidget(t['v_bar_r'])
+        # else:
+        #     t['v_bar'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
+        #     t['volume'].addWidget(t['v_bar'])
 
         t['widget'].addLayout(t['volume'])
 
@@ -278,7 +278,7 @@ class Ui_MainWindow(object):
 
         self.create_space_control()
 
-        self.create_space_display()
+        # self.create_space_display()
 
         self.main_layout.addLayout(self.ambisonic_control)
 
