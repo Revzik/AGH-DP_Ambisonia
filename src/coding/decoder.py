@@ -46,10 +46,10 @@ def to_binaural(W, X, Y, Z):
     # noverlap = h_length // 2
     # wave_length = int(np.ceil(W.size / noverlap) * noverlap)
 
-    phis   = np.array([-125, -55,  0, 55, 125, 180,  0,   0], dtype=np.float32) * np.pi / 180
-    thetas = np.array([   0,   0,  0,  0,   0,   0, 90, -45], dtype=np.float32) * np.pi / 180
-    p_idx  =          [  23,  23, 13,  3,   3,  13, 13,  13]
-    t_idx  =          [   9,   9,  9,  9,   9,   9, 25,   0]
+    phis = np.array([-125, -55, 0, 55, 125, 180, 0, 0], dtype=np.float32) * np.pi / 180
+    thetas = np.array([0, 0, 0, 0, 0, 0, 90, -45], dtype=np.float32) * np.pi / 180
+    p_idx = [23, 23, 13, 3, 3, 13, 13, 13]
+    t_idx = [9, 9, 9, 9, 9, 9, 25, 0]
 
     hrtf = spio.loadmat(HRTF)
 
@@ -91,8 +91,8 @@ def fft(data):
 
 
 def stft(data, nfft=NFFT, noverlap=NOVERLAP):
-    _, _, fft = sig.stft(data, nperseg=nfft, nfft=nfft, noverlap=noverlap, window=WINDOW)
-    return fft
+    _, _, _fft = sig.stft(data, nperseg=nfft, nfft=nfft, noverlap=noverlap, window=WINDOW)
+    return _fft
 
 
 def istft(data, nfft=NFFT, noverlap=NOVERLAP):

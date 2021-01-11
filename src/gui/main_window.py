@@ -517,8 +517,8 @@ class Ui_MainWindow(object):
                 self.mixer.tracks[index].load(path[0])
 
                 current_type = self.mixer.tracks[index].type
-                if not current_type == previous_type:
-                    self.update_track_bars(index, previous_type, current_type)
+                # if not current_type == previous_type:
+                #     self.update_track_bars(index, previous_type, current_type)
 
                 print('Successfully loaded track from {} as Track {}'.format(path[0], index + 1))
         except Exception as e:
@@ -599,9 +599,11 @@ class Ui_MainWindow(object):
             dialog = QtWidgets.QFileDialog()
             dialog.setFileMode(QtWidgets.QFileDialog.AnyFile)
             dialog.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
-            dialog.setNameFilter("Wave files (*.wav)")
-            path = dialog.getSaveFileName()
-            self.mixer.export(path[0])
+            path = dialog.getSaveFileName(caption="Save file", filter="Wave files (*.wav)")
+            if path[0].endswith('.wav'):
+                self.mixer.export(path[0])
+            else:
+                self.mixer.export(path[0] + '.wav')
             print('File successfully saved to {}'.format(path[0]))
         except Exception as e:
             msg = QtWidgets.QMessageBox()
