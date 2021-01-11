@@ -171,7 +171,8 @@ class Ui_MainWindow(object):
 
         self.master['mode'] = QtWidgets.QComboBox(self.centralwidget)
         self.master['mode'].setObjectName("master_mode")
-        self.master['mode'].addItem("Stereo")
+        self.master['mode'].addItem("Simple stereo")
+        self.master['mode'].addItem("UHJ Stereo")
         self.master['mode'].addItem("Binaural")
         self.master['mode'].currentIndexChanged.connect(self.update_master_format)
         self.master['widget'].addWidget(self.master['mode'])
@@ -469,34 +470,42 @@ class Ui_MainWindow(object):
     def update_ambisonic_control(self, index):
         self.selected_track = index
 
+        stereo_toggle = False
+        stereo = 0
+        horizontal_toggle = True
+        vertical_toggle = True
+
         if index == -1:
-            phi = self.mixer.master.phi
-            theta = self.mixer.master.theta
-            if self.mixer.master.type == track.STEREO:
-                stereo = self.mixer.master.stereo_angle
-                stereo_toggle = True
-            else:
-                stereo = 0
-                stereo_toggle = False
+            horizontal_toggle = False
+            phi = 0
+            vertical_toggle = False
+            theta = 0
+            # phi = self.mixer.master.phi
+            # theta = self.mixer.master.theta
+            # if self.mixer.master.type == track.SIMPLE_STEREO:
+            #     stereo = self.mixer.master.stereo_angle
+            #     stereo_toggle = True
+            #     vertical_toggle = False
+            #     theta = 0
+            # elif self.mixer.master.type == track.UHJ_STEREO:
+            #     vertical_toggle = False
+            #     theta = 0
         else:
-            phi = self.mixer.tracks[index].phi
+            phi = -self.mixer.tracks[index].phi
             theta = self.mixer.tracks[index].theta
-            if self.mixer.tracks[index].type == track.STEREO:
+            if self.mixer.tracks[index].type == track.SIMPLE_STEREO:
                 stereo = self.mixer.tracks[index].stereo_angle
                 stereo_toggle = True
-            else:
-                stereo = 0
-                stereo_toggle = False
 
-        print('Selected track {}, phi: {}, theta: {}, stereo toggled: {}, stereo angle: {}'.
-              format(index, phi, theta, stereo_toggle, stereo))
+        print('Selected track {}, phi: {}, theta: {}, stereo toggled: {}, vertica toggled: {}, stereo angle: {}'.
+              format(index, -phi, theta, stereo_toggle, vertical_toggle, stereo))
 
         self.space_control['stereo_control'].sl.setProperty('value', stereo)
         self.space_control['stereo_control'].sl.setEnabled(stereo_toggle)
         self.space_control['horizontal_control'].setProperty('value', phi)
-        self.space_control['horizontal_control'].setEnabled(True)
+        self.space_control['horizontal_control'].setEnabled(horizontal_toggle)
         self.space_control['vertical_control'].sl.setProperty('value', theta)
-        self.space_control['vertical_control'].sl.setEnabled(True)
+        self.space_control['vertical_control'].sl.setEnabled(vertical_toggle)
 
         for i, t in enumerate(self.tracks):
             t['label'].setChecked(i == index)
@@ -533,7 +542,7 @@ class Ui_MainWindow(object):
             self.tracks[index]['volume'].removeWidget(self.tracks[index]['v_bar'])
             self.tracks[index]['v_bar'].deleteLater()
             del self.tracks[index]['v_bar']
-        elif old_type == track.STEREO:
+        elif old_type == track.SIMPLE_STEREO:
             self.tracks[index]['volume'].removeWidget(self.tracks[index]['v_bar_l'])
             self.tracks[index]['v_bar_l'].deleteLater()
             del self.tracks[index]['v_bar_l']
@@ -544,7 +553,7 @@ class Ui_MainWindow(object):
         if new_type == track.MONO:
             self.tracks[index]['v_bar'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
             self.tracks[index]['volume'].addWidget(self.tracks[index]['v_bar'])
-        elif new_type == track.STEREO:
+        elif new_type == track.SIMPLE_STEREO:
             self.tracks[index]['v_bar_l'] = Bar(VOL_MIN, VOL_MAX, VOL_YELLOW, VOL_RED)
             self.tracks[index]['volume'].addWidget(self.tracks[index]['v_bar_l'])
 
@@ -564,18 +573,20 @@ class Ui_MainWindow(object):
 
     def update_master_format(self, index):
         if index == 0:
-            self.mixer.master.type = track.STEREO
+            self.mixer.master.type = track.SIMPLE_STEREO
             self.mixer.master.stereo_angle = 30
         elif index == 1:
+            self.mixer.master.type = track.UHJ_STEREO
+        elif index == 2:
             self.mixer.master.type = track.BINAURAL
         self.update_ambisonic_control(-1)
 
     def read_rotation(self):
         value = self.space_control['horizontal_control'].value()
         if self.selected_track == -1:
-            self.mixer.master.phi = value
+            self.mixer.master.phi = -value
         else:
-            self.mixer.tracks[self.selected_track].phi = value
+            self.mixer.tracks[self.selected_track].phi = -value
 
     def read_elevation(self):
         value = self.space_control['vertical_control'].sl.value()

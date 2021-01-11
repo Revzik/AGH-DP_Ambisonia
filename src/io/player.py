@@ -11,5 +11,5 @@ class Player:
         self.play_obj = sa.play_buffer(wave, channels, 2, fs)
 
     def stop(self):
-        if self.play_obj.is_playing:
+        if self.play_obj is not None and self.play_obj.is_playing:
             self.play_obj.stop()

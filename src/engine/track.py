@@ -5,8 +5,10 @@ from src.coding import encoder, decoder
 
 
 MONO = 'mono'
-STEREO = 'stereo'
+UHJ_STEREO = 'uhj_stereo'
+SIMPLE_STEREO = 'stereo'
 BINAURAL = 'binaural'
+FS = 48000
 
 
 class Track:
@@ -30,12 +32,7 @@ class Track:
         self.stereo_angle = 30
 
     def reset(self):
-        self.wave = None
-        self.W = None
-        self.X = None
-        self.Y = None
-        self.Z = None
-        self.fs = 44100
+        self.__init__()
 
 
 class InputTrack(Track):
@@ -43,19 +40,20 @@ class InputTrack(Track):
         super().__init__()
 
     def load(self, path):
+        self.reset()
         try:
-            self.wave, self.channels, self.fs = file.load_wav(path)
+            self.wave, self.channels, self.fs = file.load_wav(path, FS)
             self.length = self.wave.size
             self.loaded = True
             if self.channels == 1:
                 self.type = MONO
             else:
-                self.type = STEREO
+                self.type = SIMPLE_STEREO
 
             print('Loaded track from {}, track type: {}, track sample rate: {}'.
                   format(path, self.type, self.fs))
         except Exception as e:
-            self.loaded = False
+            self.reset()
             raise e
 
     def encode(self):
@@ -63,7 +61,7 @@ class InputTrack(Track):
             self.W, self.X, self.Y, self.Z = encoder.b_format(self.wave, self.phi, self.theta)
         else:
             W_l, X_l, Y_l, Z_l = encoder.b_format(self.wave[:, 0], self.phi - self.stereo_angle, self.theta)
-            W_r, X_r, Y_r, Z_r = encoder.b_format(self.wave[:, 0], self.phi + self.stereo_angle, self.theta)
+            W_r, X_r, Y_r, Z_r = encoder.b_format(self.wave[:, 1], self.phi + self.stereo_angle, self.theta)
             self.W = W_l + W_r
             self.X = X_l + X_r
             self.Y = Y_l + Y_r
@@ -78,13 +76,15 @@ class MasterTrack(Track):
         super().__init__()
 
         self.channels = 2
-        self.type = STEREO
-        self.fs = 44100
+        self.type = SIMPLE_STEREO
+        self.fs = FS
 
     def decode(self):
-        if self.type == STEREO:
-            self.wave = decoder.to_stereo(self.W, self.X, self.Y, self.Z)
-        else:
+        if self.type == SIMPLE_STEREO:
+            self.wave = decoder.to_simple_stereo(self.W, self.X, self.Y, self.Z, self.stereo_angle)
+        elif self.type == UHJ_STEREO:
+            self.wave = decoder.to_uhj_stereo(self.W, self.X, self.Y, self.Z)
+        elif self.type == BINAURAL:
             self.wave = decoder.to_binaural(self.W, self.X, self.Y, self.Z)
 
     def export(self):
@@ -97,7 +97,7 @@ class MasterTrack(Track):
         self.X = np.zeros(self.length)
         self.Y = np.zeros(self.length)
         self.Z = np.zeros(self.length)
-        self.fs = 44100
+        self.fs = FS
 
     def receive(self, W, X, Y, Z):
         master_length = self.length
