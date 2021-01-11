@@ -480,29 +480,22 @@ class Ui_MainWindow(object):
             phi = 0
             vertical_toggle = False
             theta = 0
-            # phi = self.mixer.master.phi
-            # theta = self.mixer.master.theta
-            # if self.mixer.master.type == track.SIMPLE_STEREO:
-            #     stereo = self.mixer.master.stereo_angle
-            #     stereo_toggle = True
-            #     vertical_toggle = False
-            #     theta = 0
-            # elif self.mixer.master.type == track.UHJ_STEREO:
-            #     vertical_toggle = False
-            #     theta = 0
+            if self.mixer.master.type == track.SIMPLE_STEREO:
+                stereo = self.mixer.master.stereo_angle
+                stereo_toggle = True
         else:
-            phi = -self.mixer.tracks[index].phi
+            phi = self.mixer.tracks[index].phi
             theta = self.mixer.tracks[index].theta
             if self.mixer.tracks[index].type == track.SIMPLE_STEREO:
                 stereo = self.mixer.tracks[index].stereo_angle
                 stereo_toggle = True
 
         print('Selected track {}, phi: {}, theta: {}, stereo toggled: {}, vertica toggled: {}, stereo angle: {}'.
-              format(index, -phi, theta, stereo_toggle, vertical_toggle, stereo))
+              format(index, phi, theta, stereo_toggle, vertical_toggle, stereo))
 
         self.space_control['stereo_control'].sl.setProperty('value', stereo)
         self.space_control['stereo_control'].sl.setEnabled(stereo_toggle)
-        self.space_control['horizontal_control'].setProperty('value', phi)
+        self.space_control['horizontal_control'].setProperty('value', -phi)
         self.space_control['horizontal_control'].setEnabled(horizontal_toggle)
         self.space_control['vertical_control'].sl.setProperty('value', theta)
         self.space_control['vertical_control'].sl.setEnabled(vertical_toggle)
